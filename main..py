@@ -131,7 +131,7 @@ async def info(interaction: discord.Integration):
     embed.add_field(name="Le bot", value="Ce bot a été crée pour donner les kholes de la mp2i de Thiers, il est opensource, son code source est sur https://github.com/LeRatGondin/Khollobot")
     embed.set_thumbnail(
         url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
-    embed.set_footer("MP2I >>>> MPSI")
+    embed.set_footer(text="MP2I >>>> MPSI")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
