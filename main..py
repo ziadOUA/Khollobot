@@ -122,7 +122,7 @@ async def on_ready():
 
 
 @tree.command(name="information", description="Quelques infos sur le bot")
-async def info(interaction: discord.Intergration):
+async def info(interaction: discord.Integration):
     embed = discord.Embed(
         title="Informations",
         description="Voici diverses informations sur le bot"
