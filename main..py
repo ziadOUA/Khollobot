@@ -141,7 +141,7 @@ async def connect(interaction: discord.Integration):
     if str(interaction.user.id) in data["Members"]:
         data["Members"][interaction.user.id] = {}
         with open("data.json", "w") as f:
-            json.dump(data, f, ident=4)
+            json.dump(data, f, indent=4)
 
     embed = discord.Embed(
         title="Dans quel groupe es-tu ?",
