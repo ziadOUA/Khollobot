@@ -99,7 +99,7 @@ def get_kholles():
                     group_a["membres"].append(row[col])
             groups.append(group_a)
 
-        if pd.notna(row['fUnnamed: 4']):
+        if pd.notna(row['Unnamed: 4']):
             group_b = {
                 "group_id": int(row['Unnamed: 4']),
                 "membres": []
