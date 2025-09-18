@@ -111,12 +111,24 @@ def get_kholles():
     return groups, colles
 
 
+def kholles_semaines(user_id: int, semaine: int = None) -> dict:
+    user_data = data["Members"][str(user_id)]
+    user_group_id = user_data["group_id"]
+
+    user_colles = []
+    for kholle in colles[f"S_{semaine_actuelle() if not semaine else semaine}"]:
+        if kholle["group_id"] == user_group_id:
+            user_colles.append(kholle)
+    user_colles = sorted(user_colles, key=lambda x: day_to_num[x["jour"]])
+    return user_colles
+
+
 @bot.event
 async def on_ready():
     get_kholles()
     bot.add_view(Select_group())
-    send_dm.start()
-    send_dm_reminder.start()
+    # send_dm.start()
+    # send_dm_reminder.start()
     print(f'We have logged in as {bot.user}')
     await tree.sync(guild=None)
 
@@ -175,13 +187,7 @@ async def colles_cmd(interaction: discord.Integration):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
-    user_data = data["Members"][member]
-    user_group_id = user_data["group_id"]
-
-    user_colles = []
-    for kholle in colles[f"S_{semaine_actuelle()}"]:
-        if kholle["group_id"] == user_group_id:
-            user_colles.append(kholle)
+    user_colles = kholles_semaines(interaction.user.id)
 
     if not user_colles:
         embed = discord.Embed(
@@ -197,70 +203,150 @@ async def colles_cmd(interaction: discord.Integration):
         return
 
     embed = discord.Embed(
-        title="Tes colles pour cette semaine",
-        description="Voici les colles que tu as cette semaine :",
+        title=f"Tes colles pour la semaine",
+        description=f"Voici les colles que tu as pour la S_{semaine_actuelle()} (Semaine {semaine_actuelle() + 38}) : ",
         colour=discord.Colour.purple()
     )
     for kholle in user_colles:
         embed.add_field(
             name=f"{kholle['matiere']} avec {kholle['colleur']}",
-            value=f"Le {kholle['jour']} à {kholle['heure']}",
-            inline=False
+            value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
         )
     embed.set_footer(text="MP2I >>>> MPSI")
     embed.set_thumbnail(
         url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=True, view=select_week())
 
 
-@tasks.loop(hours=168)
-async def send_dm():
-    for member in data["members"]:
-        for kholle in colles[f"S_{semaine_actuelle()}"]:
-            if kholle["group_id"] == data["Members"][member]["group_id"]:
-                user = await bot.fetch_user(data["Members"][member]["discord_id"])
-                embed = discord.Embed(
-                    title="Rappel de ta khôlle",
-                    description=f"Tu as une khôlle de {kholle['matiere']} avec {kholle['colleur']} le {kholle['jour']} à {kholle['heure']}.",
-                    colour=discord.Colour.purple()
-                )
-                embed.set_footer(text="MP2I >>>> MPSI")
-                embed.set_thumbnail(
-                    url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+class select_week(discord.ui.View):
 
-                await user.send(embed=embed)
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.semaine = semaine_actuelle()
+
+    @discord.ui.button(label="Semaine precedente", style=discord.ButtonStyle.danger, emoji="⬅️")
+    async def second_button_callback(self, interaction, button):
+        self.semaine -= 1
+
+        if self.semaine < 0:
+            embed = discord.Embed(
+                title="Aucune colle cette semaine",
+                description="Tu n'as pas de colles prévues pour cette semaine.",
+                colour=discord.Colour.green()
+            )
+            embed.set_footer(text="MP2I >>>> MPSI")
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        user_colles = kholles_semaines(
+            interaction.user.id, semaine=self.semaine)
+
+        embed = discord.Embed(
+            title=f"Tes colles pour la semaine",
+            description=f"Voici les colles que tu as pour la S_{self.semaine} (Semaine {self.semaine + 38}) : ",
+            colour=discord.Colour.purple()
+        )
+        for kholle in user_colles:
+            embed.add_field(
+                name=f"{kholle['matiere']} avec {kholle['colleur']}",
+                value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
+            )
+        embed.set_footer(text="MP2I >>>> MPSI")
+        embed.set_thumbnail(
+            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+        view = select_week()
+        view.semaine = self.semaine
+        await interaction.response.edit_message(embed=embed, view=view)
+
+    @discord.ui.button(label="Semaine suivante", style=discord.ButtonStyle.success, emoji="➡️")
+    async def first_button_callback(self, interaction, button):
+        self.semaine += 1
+
+        try:
+            user_colles = kholles_semaines(
+                interaction.user.id, semaine=self.semaine)
+        except:
+            embed = discord.Embed(
+                title="Aucune colle cette semaine",
+                description="Tu n'as pas de colles prévues pour cette semaine.",
+                colour=discord.Colour.green()
+            )
+            embed.set_footer(text="MP2I >>>> MPSI")
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+
+            await interaction.response.edit_message(embed=embed, view=None)
+            return
+
+        embed = discord.Embed(
+            title=f"Tes colles pour la semaine",
+            description=f"Voici les colles que tu as pour la S_{self.semaine} (Semaine {self.semaine + 38}) : ",
+            colour=discord.Colour.purple()
+        )
+        for kholle in user_colles:
+            embed.add_field(
+                name=f"{kholle['matiere']} avec {kholle['colleur']}",
+                value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
+            )
+        embed.set_footer(text="MP2I >>>> MPSI")
+        embed.set_thumbnail(
+            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+        view = select_week()
+        view.semaine = self.semaine
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
-@send_dm.before_loop
-async def before():
-    await bot.wait_until_ready()
-    next_run = datetime.datetime.combine(
-        datetime.date.today() + datetime.timedelta((3 - datetime.date.today().weekday()) % 7),
-        datetime.time(8, 0)
-    )
-    await asyncio.sleep((next_run - datetime.datetime.now()).total_seconds())
+# @tasks.loop(hours=168)
+# async def send_dm():
+#     for member in data["Members"]:
+#         for kholle in colles[f"S_{semaine_actuelle()}"]:
+#             if kholle["group_id"] == data["Members"][str(member)]["group_id"]:
+#                 user = await bot.fetch_user(data["Members"][member]["discord_id"])
+#                 embed = discord.Embed(
+#                     title="Rappel de ta khôlle",
+#                     description=f"Tu as une khôlle de {kholle['matiere']} avec {kholle['colleur']} le {kholle['jour']} à {kholle['heure']}.",
+#                     colour=discord.Colour.purple()
+#                 )
+#                 embed.set_footer(text="MP2I >>>> MPSI")
+#                 embed.set_thumbnail(
+#                     url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+
+#                 await user.send(embed=embed)
 
 
-@tasks.loop(hours=72)
-async def send_dm_reminder():
-    for member in data["Members"]:
-        for kholle in colles[f"S_{semaine_actuelle()}"]:
-            if kholle["group_id"] == data["Members"][member]["group_id"] and kholle["semaine"] == semaine_actuelle():
-                if datetime.datetime.now().weekday() != day_to_num[kholle["jour"]]-3:
-                    continue
-                if not data["Members"][member].get("reminder", True):
-                    continue
-                user = await bot.fetch_user(data["Members"][member]["discord_id"])
-                embed = discord.Embed(
-                    title="Rappel de ta khôlle dans 3 jours",
-                    description=f"Tu as une khôlle de {kholle['matiere']} avec {kholle['colleur']} le {kholle['jour']} à {kholle['heure']}.",
-                    colour=discord.Colour.purple()
-                )
-                embed.set_footer(text="MP2I >>>> MPSI")
-                embed.set_thumbnail(
-                    url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
-                await user.send(embed=embed)
+# @send_dm.before_loop
+# async def before():
+#     await bot.wait_until_ready()
+#     next_run = datetime.datetime.combine(
+#         datetime.date.today() + datetime.timedelta((3 - datetime.date.today().weekday()) % 7),
+#         datetime.time(8, 0)
+#     )
+#     await asyncio.sleep((next_run - datetime.datetime.now()).total_seconds())
+
+
+# @tasks.loop(hours=72)
+# async def send_dm_reminder():
+#     for member in data["Members"]:
+#         for kholle in colles[f"S_{semaine_actuelle()}"]:
+#             if kholle["group_id"] == data["Members"][member]["group_id"] and kholle["semaine"] == semaine_actuelle():
+#                 if datetime.datetime.now().weekday() != day_to_num[kholle["jour"]]-3:
+#                     continue
+#                 if not data["Members"][member].get("reminder", True):
+#                     continue
+#                 user = await bot.fetch_user(data["Members"][member]["discord_id"])
+#                 embed = discord.Embed(
+#                     title="Rappel de ta khôlle dans 3 jours",
+#                     description=f"Tu as une khôlle de {kholle['matiere']} avec {kholle['colleur']} le {kholle['jour']} à {kholle['heure']}.",
+#                     colour=discord.Colour.purple()
+#                 )
+#                 embed.set_footer(text="MP2I >>>> MPSI")
+#                 embed.set_thumbnail(
+#                     url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+#                 await user.send(embed=embed)
 
 
 class Select_group(discord.ui.View):
