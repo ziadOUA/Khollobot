@@ -165,7 +165,7 @@ async def colles_cmd(interaction: discord.Integration):
     if not member:
         embed = discord.Embed(
             title="Erreur",
-            description="Tu n'as pas encore relié ton compte Discord. Utilise la commande /connection.",
+            description="Tu n'as pas encore relié ton compte Discord, ou n'as pas fini ta connexion. Utilise la commande /connection.",
             colour=discord.Colour.purple()
         )
         embed.set_footer(text="MP2I >>>> MPSI")
@@ -341,9 +341,9 @@ class SelectMemberDropdown(discord.ui.Select):
         embed.set_thumbnail(
             url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
 
-        await interaction.response.edit_message(embed=embed, view=ReminderChoiceView(interaction.user.id))
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
+        await interaction.response.edit_message(embed=embed, view=ReminderChoiceView(interaction.user.id))
 
 
 class ReminderChoiceView(discord.ui.View):
