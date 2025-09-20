@@ -184,7 +184,7 @@ async def info(interaction: discord.Integration):
 @tree.command(name="connection", description="Relie ton compte discord aux khôlles")
 async def connect(interaction: discord.Integration):
     if str(interaction.user.id) in data["Members"]:
-        data["Members"][interaction.user.id] = {}
+        data["Members"][str(interaction.user.id)] = {}
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
 
@@ -491,9 +491,12 @@ class ReminderChoiceView(discord.ui.View):
             json.dump(data, f, indent=4)
         embed = discord.Embed(
             title="Préférence enregistrée",
-            description="Tu recevras un rappel avant ta khôlle." if choice else "Tu ne recevras pas de rappel.",
+            description="Tu recevras un rappel avant ta khôlle." if choice == "True" else "Tu ne recevras pas de rappel avant ta khôlle.",
             colour=discord.Colour.purple()
         )
+        embed.set_footer(text="MP2I >>>> MPSI")
+        embed.set_thumbnail(
+            url=url)
         await interaction.response.edit_message(embed=embed, view=None)
 
 
