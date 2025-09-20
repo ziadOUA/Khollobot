@@ -126,8 +126,8 @@ def kholles_semaines(user_id: int, semaine: int = None) -> dict:
 @bot.event
 async def on_ready():
     get_kholles()
-    send_reminder_saturday()
-    send_reminder_2days_before()
+    await send_reminder_saturday()
+    await send_reminder_2days_before()
     print(f'We have logged in as {bot.user}')
     await tree.sync(guild=None)
 
@@ -340,7 +340,7 @@ async def send_reminder_2days_before():
             colour=discord.Colour.red()
         )
         for kholle in user_colles:
-            if datetime.date.today().timetuple().tm_wday - day_to_num[kholle['jour']] == 2:
+            if day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == 2:
                 embed.add_field(
                     name=f"{kholle['matiere']} avec {kholle['colleur']}",
                     value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
