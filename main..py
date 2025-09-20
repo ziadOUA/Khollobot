@@ -18,8 +18,9 @@ with open("Zone-B.ics", 'r') as f:
 bot = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(bot)
 
+url = "https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless"
 groups = []
-colles = {}
+khôlles = {}
 semaine_collometre = {}
 
 
@@ -35,10 +36,10 @@ def semaine_S():
             # La 1ere semaine de chaque vacance (+1 parce que le début c'est le vendredi) (+1 parce que ce module de ### commence l'année à la semaine 0)
             holidays.append(int(event.begin.datetime.strftime('%W'))+2)
             holidays.append(int(event.end.datetime.strftime('%W')))
-    # Semaine de début des colles, à changer chaque semestre
+    # Semaine de début des khôlles, à changer chaque semestre
     week = config["FirstColleWeek"]
     nb = 0
-    while nb <= 15:  # Nombre de semaine de colles
+    while nb <= 15:  # Nombre de semaine de khôlles
         if not ((week) in holidays):
             semaine_collometre[nb] = week
             nb += 1
@@ -69,19 +70,19 @@ day_to_num = {
 
 
 def get_kholles():
-    """Func that reads the collomètre and returns a tuple of (group, colles)
+    """Func that reads the collomètre and returns a tuple of (group, khôlles)
     TODO Make it also tell which group as what half group classes
     """
     df1 = pd.read_excel("collomètre.xlsx", sheet_name=0)
-    data_colles = df1.to_dict(orient="records")
+    data_khôlles = df1.to_dict(orient="records")
 
     df2 = pd.read_excel("collomètre.xlsx", sheet_name=1)
     data_groups = df2.to_dict(orient="records")
 
     current_matiere = None
 
-    # Use the first page to get the colles
-    for row in data_colles:
+    # Use the first page to get the khôlles
+    for row in data_khôlles:
         if pd.notna(row['Matière']) and pd.isna(row['Colleur']):
             # Ignore the half-class groups
             if "Groupes demi-classe" in row['Matière']:
@@ -105,9 +106,9 @@ def get_kholles():
 
                     semaine_from_key = int(key.split("_S")[-1])
                     key_semaine = "S_" + str(semaine_from_key)
-                    if key_semaine not in colles:
-                        colles[key_semaine] = []
-                    colles[key_semaine].append({
+                    if key_semaine not in khôlles:
+                        khôlles[key_semaine] = []
+                    khôlles[key_semaine].append({
                         "group_id": group_id,
                         "matiere": current_matiere,
                         "colleur": colleur,
@@ -137,22 +138,22 @@ def get_kholles():
                 if pd.notna(row[col]):
                     group_b["membres"].append(row[col])
             groups.append(group_b)
-    return groups, colles
+    return groups, khôlles
 
 
 def kholles_semaines(user_id: int, semaine: int = None) -> dict:
     """
-    Sends the week's colles for a user_id
+    Sends the week's khôlles for a user_id
     If semaine is not given use the current week"""
     user_data = data["Members"][str(user_id)]
     user_group_id = user_data["group_id"]
 
-    user_colles = []
-    for kholle in colles[f"S_{semaine_actuelle() if not semaine else semaine}"]:
+    user_khôlles = []
+    for kholle in khôlles[f"S_{semaine_actuelle() if not semaine else semaine}"]:
         if kholle["group_id"] == user_group_id:
-            user_colles.append(kholle)
-    user_colles = sorted(user_colles, key=lambda x: day_to_num[x["jour"]])
-    return user_colles
+            user_khôlles.append(kholle)
+    user_khôlles = sorted(user_khôlles, key=lambda x: day_to_num[x["jour"]])
+    return user_khôlles
 
 
 @bot.event
@@ -174,13 +175,13 @@ async def info(interaction: discord.Integration):
     embed.add_field(name="Vos données", value="Vos données sont stockés dans un fichier qui n'est pas publique, si vous voulez la supression de vos donneés demandez a l'administrateur du programme")
     embed.add_field(name="Le bot", value="Ce bot a été crée pour donner les kholes de la mp2i de Thiers, il est opensource, son code source est sur https://github.com/LeRatGondin/Khollobot")
     embed.set_thumbnail(
-        url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+        url=url)
     embed.set_footer(text="MP2I >>>> MPSI")
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@tree.command(name="connection", description="Relie ton compte discord aux colles")
+@tree.command(name="connection", description="Relie ton compte discord aux khôlles")
 async def connect(interaction: discord.Integration):
     if str(interaction.user.id) in data["Members"]:
         data["Members"][interaction.user.id] = {}
@@ -194,13 +195,13 @@ async def connect(interaction: discord.Integration):
     )
     embed.set_footer(text="MP2I >>>> MPSI")
     embed.set_thumbnail(
-        url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+        url=url)
 
     await interaction.response.send_message(embed=embed, view=Select_group(), ephemeral=True)
 
 
-@tree.command(name="mescolles", description="Affiche tes colles prévues pour cette semaine")
-async def colles_cmd(interaction: discord.Integration):
+@tree.command(name="mescolles", description="Affiche tes khôlles prévues pour cette semaine")
+async def khôlles_cmd(interaction: discord.Integration):
     member = data["Members"].get(str(interaction.user.id))
 
     if not member:
@@ -211,39 +212,39 @@ async def colles_cmd(interaction: discord.Integration):
         )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
-    user_colles = kholles_semaines(interaction.user.id)
+    user_khôlles = kholles_semaines(interaction.user.id)
 
-    if not user_colles:
+    if not user_khôlles:
         embed = discord.Embed(
-            title="Aucune colle cette semaine",
-            description="Tu n'as pas de colles prévues pour cette semaine.",
+            title="Aucune khôlle cette semaine",
+            description="Tu n'as pas de khôlles prévues pour cette semaine.",
             colour=discord.Colour.green()
         )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
     embed = discord.Embed(
-        title=f"Tes colles pour la semaine",
-        description=f"Voici les colles que tu as pour la S_{semaine_actuelle()} (Semaine {datetime.date.today().isocalendar()[1]} de l'année) : ",
+        title=f"Tes khôlles pour la semaine",
+        description=f"Salut, {data["Members"][str(interaction.user.id)]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{semaine_actuelle()} (Semaine {datetime.date.today().isocalendar()[1]} de l'année) : ",
         colour=discord.Colour.purple()
     )
-    for kholle in user_colles:
+    for kholle in user_khôlles:
         embed.add_field(
             name=f"{kholle['matiere']} avec {kholle['colleur']}",
             value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
         )
     embed.set_footer(text="MP2I >>>> MPSI")
     embed.set_thumbnail(
-        url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+        url=url)
 
     await interaction.response.send_message(embed=embed, ephemeral=True, view=select_week())
 
@@ -260,33 +261,33 @@ class select_week(discord.ui.View):
 
         if self.semaine < 0:
             embed = discord.Embed(
-                title="Aucune colle cette semaine",
-                description="Tu n'as pas de colles prévues pour cette semaine.",
+                title="Aucune khôlle cette semaine",
+                description="Tu n'as pas de khôlles prévues pour cette semaine.",
                 colour=discord.Colour.green()
             )
             embed.set_footer(text="MP2I >>>> MPSI")
             embed.set_thumbnail(
-                url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+                url=url)
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
-        user_colles = kholles_semaines(
+        user_khôlles = kholles_semaines(
             interaction.user.id, semaine=self.semaine)
 
         embed = discord.Embed(
-            title=f"Tes colles pour la semaine",
-            description=f"Voici les colles que tu as pour la S_{self.semaine} (Semaine {semaine_collometre[self.semaine]} de l'année) : ",
+            title=f"Tes khôlles pour la semaine",
+            description=f"Voici les khôlles que tu as pour la S_{self.semaine} (Semaine {semaine_collometre[self.semaine]} de l'année) : ",
             colour=discord.Colour.purple()
         )
-        for kholle in user_colles:
+        for kholle in user_khôlles:
             embed.add_field(
                 name=f"{kholle['matiere']} avec {kholle['colleur']}",
                 value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
             )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
@@ -294,67 +295,67 @@ class select_week(discord.ui.View):
     @discord.ui.button(label="Semaine suivante", style=discord.ButtonStyle.success, emoji="➡️")
     async def next_week_button_callback(self, interaction, button):
         """
-        Button handler to show next week colles
+        Button handler to show next week khôlles
         """
         self.semaine += 1
 
         try:
-            user_colles = kholles_semaines(
+            user_khôlles = kholles_semaines(
                 interaction.user.id, semaine=self.semaine)
         except:
             embed = discord.Embed(
-                title="Aucune colle cette semaine",
-                description="Tu n'as pas de colles prévues pour cette semaine.",
+                title="Aucune khôlle cette semaine",
+                description="Tu n'as pas de khôlles prévues pour cette semaine.",
                 colour=discord.Colour.green()
             )
             embed.set_footer(text="MP2I >>>> MPSI")
             embed.set_thumbnail(
-                url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+                url=url)
 
             await interaction.response.edit_message(embed=embed, view=None)
             return
 
         embed = discord.Embed(
-            title=f"Tes colles pour la semaine",
-            description=f"Voici les colles que tu as pour la S_{self.semaine} (Semaine {semaine_collometre[self.semaine]} de l'année) : ",
+            title=f"Tes khôlles pour la semaine",
+            description=f"Salut {data["Members"][str(interaction.user.id)]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{self.semaine} (Semaine {semaine_collometre[self.semaine]} de l'année) : ",
             colour=discord.Colour.purple()
         )
-        for kholle in user_colles:
+        for kholle in user_khôlles:
             embed.add_field(
                 name=f"{kholle['matiere']} avec {kholle['colleur']}",
                 value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
             )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
 
 
 async def send_reminder_saturday():
-    # Send a remainder every saturday for next week colles
+    # Send a remainder every saturday for next week khôlles
     if not (datetime.date.today().timetuple().tm_wday == 5):
         return
     for member in data["Members"]:
         if data["Members"][member]["reminder"] != "True":
             return
         user = await bot.fetch_user(member)
-        user_colles = kholles_semaines(member, semaine_actuelle()+1)
+        user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
 
         embed = discord.Embed(
-            title=f"Tes colles pour la semaine",
-            description=f"Voici les colles que tu as pour la S_{semaine_actuelle()+1} (Semaine {semaine_collometre[semaine_actuelle()+1]}) : ",
+            title=f"Tes khôlles pour la semaine",
+            description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{semaine_actuelle()+1} (Semaine {semaine_collometre[semaine_actuelle()+1]}) : ",
             colour=discord.Colour.purple()
         )
-        for kholle in user_colles:
+        for kholle in user_khôlles:
             embed.add_field(
                 name=f"{kholle['matiere']} avec {kholle['colleur']}",
                 value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
             )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
 
         # To send dms, the app needs to be a bot, not just an app.
         await user.send(embed=embed)
@@ -365,14 +366,14 @@ async def send_reminder_2days_before():
         if data["Members"][member]["reminder"] != "True":
             return
         user = await bot.fetch_user(member)
-        user_colles = kholles_semaines(member, semaine_actuelle()+1)
+        user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
 
         embed = discord.Embed(
-            title=f"Rappel de ta colle",
-            description=f"Voici la colle que tu as pour dans deux jours, prépare la bien ! : ",
+            title=f"Rappel de ta khôlle",
+            description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici la khôlle que tu as pour dans après demain, prépare la bien ! : ",
             colour=discord.Colour.red()
         )
-        for kholle in user_colles:
+        for kholle in user_khôlles:
             if day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == 2:
                 embed.add_field(
                     name=f"{kholle['matiere']} avec {kholle['colleur']}",
@@ -380,7 +381,7 @@ async def send_reminder_2days_before():
                 )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
         if embed.fields == []:
             continue
         # To send dms, the app needs to be a bot, not just an app.
@@ -422,7 +423,7 @@ class SelectGroupDropdown(discord.ui.Select):
         )
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
 
         await interaction.response.edit_message(embed=embed, view=Select_member(selected_group))
 
@@ -463,7 +464,7 @@ class SelectMemberDropdown(discord.ui.Select):
         }
         embed.set_footer(text="MP2I >>>> MPSI")
         embed.set_thumbnail(
-            url="https://cdn.discordapp.com/icons/883070060070064148/c1880648a1ab2805d254c47a14e9053c.png?size=256&amp;aquality=lossless")
+            url=url)
 
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
