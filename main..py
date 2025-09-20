@@ -1,16 +1,10 @@
 import discord
 from discord import app_commands
 import pandas as pd
-import os
-import asyncio
 import json
 import datetime
 from discord.ext import tasks
 
-
-global colles
-global groups
-global data
 
 with open("data.json", "r") as f:
     data = json.load(f)
@@ -20,10 +14,14 @@ tree = app_commands.CommandTree(bot)
 
 colles = {}
 groups = []
-group = {}
 
 
 def semaine_actuelle():
+    """Fonction renvoyant le numéro de la semaine de travail
+
+    >>> semaine_actuelle()
+    3
+    """
     return abs(datetime.date.today().isocalendar()[1] - 38)
 
 
@@ -39,19 +37,18 @@ day_to_num = {
 
 
 def get_kholles():
+    """Func that reads the collomètre and returns a tuple of (group, colles)
+    TODO Make it also tell which group as what half group classes
+    """
     df1 = pd.read_excel("collomètre.xlsx", sheet_name=0)
     data_colles = df1.to_dict(orient="records")
 
     df2 = pd.read_excel("collomètre.xlsx", sheet_name=1)
     data_groups = df2.to_dict(orient="records")
 
-    global colles, groups
-    colles = {}
-    groups = []
-
     current_matiere = None
 
-    # Traiter les colles (de df1)
+    # Use the first page to get the colles
     for row in data_colles:
         if pd.notna(row['Matière']) and pd.isna(row['Colleur']):
             # Ignore the half-class groups
@@ -87,7 +84,7 @@ def get_kholles():
                         "semaine": semaine_from_key
                     })
 
-    # Traiter les groupes (de df2)
+    # Use the second page to get the groups
     for row in data_groups[2:]:
         if pd.notna(row['Unnamed: 0']):
             group_a = {
@@ -112,6 +109,9 @@ def get_kholles():
 
 
 def kholles_semaines(user_id: int, semaine: int = None) -> dict:
+    """
+    Sends the week's colles for a user_id
+    If semaine is not given use the current week"""
     user_data = data["Members"][str(user_id)]
     user_group_id = user_data["group_id"]
 
@@ -126,9 +126,6 @@ def kholles_semaines(user_id: int, semaine: int = None) -> dict:
 @bot.event
 async def on_ready():
     get_kholles()
-    bot.add_view(Select_group())
-    # send_dm.start()
-    # send_dm_reminder.start()
     print(f'We have logged in as {bot.user}')
     await tree.sync(guild=None)
 
@@ -169,11 +166,8 @@ async def connect(interaction: discord.Integration):
 
 @tree.command(name="mescolles", description="Affiche tes colles prévues pour cette semaine")
 async def colles_cmd(interaction: discord.Integration):
-    member = None
-    for m in data["Members"]:
-        if m == str(interaction.user.id):
-            member = m
-            break
+    member = data["Members"].get(str(interaction.user.id))
+
     if not member:
         embed = discord.Embed(
             title="Erreur",
@@ -263,7 +257,10 @@ class select_week(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="Semaine suivante", style=discord.ButtonStyle.success, emoji="➡️")
-    async def first_button_callback(self, interaction, button):
+    async def next_week_button_callback(self, interaction, button):
+        """
+        Button handler to show next week colles
+        """
         self.semaine += 1
 
         try:
