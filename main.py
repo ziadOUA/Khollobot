@@ -181,13 +181,13 @@ async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle
     for kholle in user_khôlles:
         kholle_info = ""
         if "Info" in kholle["matiere"]:
-            kholle_info = "**\nProgramme de khôlle : \nhttps://nussbaumcpge.be/static/MP2I/pgme.pdf**"
+            kholle_info = "**\n[Programme de khôlle](https://nussbaumcpge.be/static/MP2I/pgme.pdf)**"
         if 'Français-Philosophie' in kholle["matiere"]:
             kholle["matiere"] = 'Francais-Philosophie'
         if "Maths" in kholle["matiere"]:
-            kholle_info = "**\nProgramme de khôlle : \nhttps://cahier-de-prepa.fr/mp2i-thiers/docs?rep=331**"
+            kholle_info = "**\n[Programme de khôlle de maths](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=331)**"
         if "Physique" in kholle["matiere"]:
-            kholle_info = "**\nProgramme de khôlle : \nhttps://cahier-de-prepa.fr/mp2i-thiers/docs?rep=329**"
+            kholle_info = "**\n[Programme de khôlle de physique](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=329)**"
         embed.add_field(
             name=f"{kholle['matiere']} avec {kholle['colleur']}",
             value=f"```\nLe {kholle['jour']} à {kholle['heure']}```{kholle_info}",
