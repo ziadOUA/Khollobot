@@ -48,14 +48,16 @@ def semaine_S():
             week = 1
 
 
-def semaine_actuelle():
+def semaine_actuelle() -> int:
     """Fonction renvoyant le numéro de la semaine de travail, ou la prochaine il n'y a pas cours cette semaine
 
     >>> semaine_actuelle()
     3
     """
-    if (datetime.date.today().isocalendar()[1]) in semaine_collometre.values():
-        return list(semaine_collometre.values()).index(datetime.date.today().isocalendar()[1])
+    if not (datetime.date.today().isocalendar()[1]) in semaine_collometre.values():
+        raise TypeError("Week not in collometre")
+
+    return list(semaine_collometre.values()).index(datetime.date.today().isocalendar()[1])
 
 
 day_to_num = {
@@ -75,6 +77,7 @@ def get_kholles():
     """
     df1 = pd.read_excel("collomètre.xlsx", sheet_name=0)
     data_khôlles = df1.to_dict(orient="records")
+    
 
     df2 = pd.read_excel("collomètre.xlsx", sheet_name=1)
     data_groups = df2.to_dict(orient="records")
@@ -141,7 +144,7 @@ def get_kholles():
     return groups, khôlles
 
 
-def kholles_semaines(user_id: int, semaine: int = None) -> dict:
+def kholles_semaines(user_id: int, semaine: int = semaine_actuelle()) -> list:
     """
     Sends the week's khôlles for a user_id
     If semaine is not given use the current week"""
@@ -155,6 +158,33 @@ def kholles_semaines(user_id: int, semaine: int = None) -> dict:
     user_khôlles = sorted(user_khôlles, key=lambda x: day_to_num[x["jour"]])
     return user_khôlles
 
+async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle()):
+    if not user_khôlles:
+        embed = discord.Embed(
+            title="Aucune khôlle cette semaine",
+            description="Tu n'as pas de khôlles prévues pour cette semaine.",
+            colour=discord.Colour.green()
+        )
+        embed.set_footer(text="MP2I >>>> MPSI")
+        embed.set_thumbnail(
+            url=url)
+        return embed
+
+    embed = discord.Embed(
+        title=f"Tes khôlles pour la semaine",
+        description=f"Salut, {data["Members"][str(user_id)]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{semaine} (Semaine {semaine_collometre[semaine]} de l'année) : ",
+        colour=discord.Colour.purple()
+    )
+    for kholle in user_khôlles:
+        kholle_info = ""
+        print(kholle["matiere"])
+        if "Info" in kholle["matiere"]:
+            kholle_info = "\n Programme de khôlle : https://nussbaumcpge.be/static/MP2I/pgme.pdf"
+        embed.add_field(
+            name=f"{kholle['matiere']} avec {kholle['colleur']} {kholle_info}",
+            value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
+        )
+    return embed
 
 @bot.event
 async def on_ready():
@@ -167,7 +197,7 @@ async def on_ready():
 
 
 @tree.command(name="information", description="Quelques infos sur le bot")
-async def info(interaction: discord.Integration):
+async def info(interaction: discord.Interaction):
     embed = discord.Embed(
         title="Informations",
         description="Voici diverses informations sur le bot"
@@ -182,7 +212,7 @@ async def info(interaction: discord.Integration):
 
 
 @tree.command(name="connection", description="Relie ton compte discord aux khôlles")
-async def connect(interaction: discord.Integration):
+async def connect(interaction: discord.Interaction):
     if str(interaction.user.id) in data["Members"]:
         data["Members"][str(interaction.user.id)] = {}
         with open("data.json", "w") as f:
@@ -201,7 +231,7 @@ async def connect(interaction: discord.Integration):
 
 
 @tree.command(name="mescolles", description="Affiche tes khôlles prévues pour cette semaine")
-async def khôlles_cmd(interaction: discord.Integration):
+async def khôlles_cmd(interaction: discord.Interaction):
     member = data["Members"].get(str(interaction.user.id))
 
     if not member:
@@ -217,34 +247,7 @@ async def khôlles_cmd(interaction: discord.Integration):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
-    user_khôlles = kholles_semaines(interaction.user.id)
-
-    if not user_khôlles:
-        embed = discord.Embed(
-            title="Aucune khôlle cette semaine",
-            description="Tu n'as pas de khôlles prévues pour cette semaine.",
-            colour=discord.Colour.green()
-        )
-        embed.set_footer(text="MP2I >>>> MPSI")
-        embed.set_thumbnail(
-            url=url)
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-
-    embed = discord.Embed(
-        title=f"Tes khôlles pour la semaine",
-        description=f"Salut, {data["Members"][str(interaction.user.id)]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{semaine_actuelle()} (Semaine {datetime.date.today().isocalendar()[1]} de l'année) : ",
-        colour=discord.Colour.purple()
-    )
-    for kholle in user_khôlles:
-        embed.add_field(
-            name=f"{kholle['matiere']} avec {kholle['colleur']}",
-            value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
-        )
-    embed.set_footer(text="MP2I >>>> MPSI")
-    embed.set_thumbnail(
-        url=url)
+    embed = await gen_kholle(kholles_semaines(interaction.user.id), user_id = interaction.user.id)
 
     await interaction.response.send_message(embed=embed, ephemeral=True, view=select_week())
 
@@ -275,19 +278,7 @@ class select_week(discord.ui.View):
         user_khôlles = kholles_semaines(
             interaction.user.id, semaine=self.semaine)
 
-        embed = discord.Embed(
-            title=f"Tes khôlles pour la semaine",
-            description=f"Voici les khôlles que tu as pour la S_{self.semaine} (Semaine {semaine_collometre[self.semaine]} de l'année) : ",
-            colour=discord.Colour.purple()
-        )
-        for kholle in user_khôlles:
-            embed.add_field(
-                name=f"{kholle['matiere']} avec {kholle['colleur']}",
-                value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
-            )
-        embed.set_footer(text="MP2I >>>> MPSI")
-        embed.set_thumbnail(
-            url=url)
+        embed = gen_kholle(user_khôlles, semaine=self.semaine, user_id = interaction.user.id)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
@@ -299,35 +290,9 @@ class select_week(discord.ui.View):
         """
         self.semaine += 1
 
-        try:
-            user_khôlles = kholles_semaines(
-                interaction.user.id, semaine=self.semaine)
-        except:
-            embed = discord.Embed(
-                title="Aucune khôlle cette semaine",
-                description="Tu n'as pas de khôlles prévues pour cette semaine.",
-                colour=discord.Colour.green()
-            )
-            embed.set_footer(text="MP2I >>>> MPSI")
-            embed.set_thumbnail(
-                url=url)
-
-            await interaction.response.edit_message(embed=embed, view=None)
-            return
-
-        embed = discord.Embed(
-            title=f"Tes khôlles pour la semaine",
-            description=f"Salut {data["Members"][str(interaction.user.id)]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{self.semaine} (Semaine {semaine_collometre[self.semaine]} de l'année) : ",
-            colour=discord.Colour.purple()
-        )
-        for kholle in user_khôlles:
-            embed.add_field(
-                name=f"{kholle['matiere']} avec {kholle['colleur']}",
-                value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
-            )
-        embed.set_footer(text="MP2I >>>> MPSI")
-        embed.set_thumbnail(
-            url=url)
+        user_khôlles = kholles_semaines(
+            interaction.user.id, semaine=self.semaine)
+        embed = await gen_kholle(user_khôlles, semaine=self.semaine, user_id = interaction.user.id)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
@@ -343,19 +308,7 @@ async def send_reminder_saturday():
         user = await bot.fetch_user(member)
         user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
 
-        embed = discord.Embed(
-            title=f"Tes khôlles pour la semaine",
-            description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici les khôlles que tu as pour la S_{semaine_actuelle()+1} (Semaine {semaine_collometre[semaine_actuelle()+1]}) : ",
-            colour=discord.Colour.purple()
-        )
-        for kholle in user_khôlles:
-            embed.add_field(
-                name=f"{kholle['matiere']} avec {kholle['colleur']}",
-                value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
-            )
-        embed.set_footer(text="MP2I >>>> MPSI")
-        embed.set_thumbnail(
-            url=url)
+        embed = await gen_kholle(user_khôlles, semaine_actuelle()+1)
 
         # To send dms, the app needs to be a bot, not just an app.
         await user.send(embed=embed)
@@ -370,7 +323,7 @@ async def send_reminder_2days_before():
 
         embed = discord.Embed(
             title=f"Rappel de ta khôlle",
-            description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici la khôlle que tu as pour dans après demain, prépare la bien ! : ",
+            description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici la khôlle que tu as pour après demain, prépare la bien ! : ",
             colour=discord.Colour.red()
         )
         for kholle in user_khôlles:
@@ -479,8 +432,8 @@ class ReminderChoiceView(discord.ui.View):
     @discord.ui.select(
         placeholder="Souhaites-tu recevoir un rappel de ta khôlle ?",
         options=[
-            discord.SelectOption(label="Oui", value=True),
-            discord.SelectOption(label="Non", value=False)
+            discord.SelectOption(label="Oui", value="True"),
+            discord.SelectOption(label="Non", value="False")
         ],
         custom_id="reminder_choice"
     )
