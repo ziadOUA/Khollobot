@@ -47,15 +47,18 @@ def semaine_S():
         if week > int(datetime.datetime(year, 12, 31).strftime('%W')):
             week = 1
 
-
 def semaine_actuelle() -> int:
     """Fonction renvoyant le numéro de la semaine de travail, ou la prochaine il n'y a pas cours cette semaine
 
     >>> semaine_actuelle()
     3
     """
-    if not (datetime.date.today().isocalendar()[1]) in semaine_collometre.values():
-        raise TypeError("Week not in collometre")
+    if not semaine_collometre:
+        semaine_S()
+    if not ((datetime.date.today().isocalendar()[1]) in semaine_collometre.values()):
+        # Alors get la semaine qui est sa bande superieure
+        next_school_week = [i for i in list(semaine_collometre.values()) if i > datetime.date.today().isocalendar()[1]][0]
+        return next_school_week
 
     return list(semaine_collometre.values()).index(datetime.date.today().isocalendar()[1])
 
@@ -177,12 +180,17 @@ async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle
     )
     for kholle in user_khôlles:
         kholle_info = ""
-        print(kholle["matiere"])
         if "Info" in kholle["matiere"]:
-            kholle_info = "\n Programme de khôlle : https://nussbaumcpge.be/static/MP2I/pgme.pdf"
+            kholle_info = "**\nProgramme de khôlle : \nhttps://nussbaumcpge.be/static/MP2I/pgme.pdf**"
+        if 'Français-Philosophie' in kholle["matiere"]:
+            kholle["matiere"] = 'Francais-Philosophie'
+        if "Maths" in kholle["matiere"]:
+            kholle_info = "**\nProgramme de khôlle : \nhttps://cahier-de-prepa.fr/mp2i-thiers/docs?rep=331**"
+        if "Physique" in kholle["matiere"]:
+            kholle_info = "**\nProgramme de khôlle : \nhttps://cahier-de-prepa.fr/mp2i-thiers/docs?rep=329**"
         embed.add_field(
-            name=f"{kholle['matiere']} avec {kholle['colleur']} {kholle_info}",
-            value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
+            name=f"{kholle['matiere']} avec {kholle['colleur']}",
+            value=f"```\nLe {kholle['jour']} à {kholle['heure']}```{kholle_info}",
         )
     return embed
 
