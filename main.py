@@ -173,7 +173,7 @@ async def info(interaction: discord.Integration):
         description="Voici diverses informations sur le bot"
     )
     embed.add_field(name="Vos données", value="Vos données sont stockés dans un fichier qui n'est pas publique, si vous voulez la supression de vos donneés demandez a l'administrateur du programme")
-    embed.add_field(name="Le bot", value="Ce bot a été crée pour donner les kholes de la mp2i de Thiers, il est opensource, son code source est sur https://github.com/LeRatGondin/Khollobot")
+    embed.add_field(name="Le bot", value="Ce bot a été crée pour donner les khôlles de la mp2i de Thiers, il est opensource, son code source est sur https://github.com/mp2i-thiers/Khollobot")
     embed.set_thumbnail(
         url=url)
     embed.set_footer(text="MP2I >>>> MPSI")
