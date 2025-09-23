@@ -327,15 +327,18 @@ async def send_reminder_2days_before():
         if data["Members"][member]["reminder"] != "True":
             return
         user = await bot.fetch_user(member)
-        user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
-
+        today = datetime.date.today().timetuple().tm_wday
+        if today in [5,6]: # If were on saturday or sunday, consider next week
+            user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
+        else:
+            user_khôlles = kholles_semaines(member, semaine_actuelle())
         embed = discord.Embed(
             title=f"Rappel de ta khôlle",
             description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici la khôlle que tu as pour après demain, prépare la bien ! : ",
             colour=discord.Colour.red()
         )
         for kholle in user_khôlles:
-            if day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == 2:
+            if day_to_num[kholle['jour']] - today == 2:
                 embed.add_field(
                     name=f"{kholle['matiere']} avec {kholle['colleur']}",
                     value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
