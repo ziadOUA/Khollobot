@@ -101,6 +101,7 @@ def get_kholles():
             colleur = row['Colleur']
             jour = row['Jour'] if pd.notna(row['Jour']) else None
             heure = row['Heure'] if pd.notna(row['Heure']) else None
+            salle = row['Salle'] if pd.notna(row['Salle']) else None
 
             for semaine in range(16):
                 col_name = f'S{semaine}'
@@ -120,6 +121,7 @@ def get_kholles():
                         "colleur": colleur,
                         "jour": jour,
                         "heure": heure,
+                        "salle": salle,
                         "semaine": semaine_from_key
                     })
 
@@ -190,7 +192,7 @@ async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle
             kholle_info = "**\n[Programme de khôlle de physique](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=329)**"
         embed.add_field(
             name=f"{kholle['matiere']} avec {kholle['colleur']}",
-            value=f"```\nLe {kholle['jour']} à {kholle['heure']}```{kholle_info}",
+            value=f"```\nLe {kholle['jour']} à {kholle['heure']} en salle : {kholle['salle']}```{kholle_info}",
         )
     return embed
 
