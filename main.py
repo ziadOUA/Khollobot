@@ -185,7 +185,7 @@ async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle
         if 'Français-Philosophie' in kholle["matiere"]:
             kholle["matiere"] = 'Francais-Philosophie'
         if "Maths" in kholle["matiere"]:
-            kholle_info = "**\n[Programme de khôlle de maths](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=331)**"
+            kholle_info = "**\n[Programme de khôlle de maths                  ](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=331)**"
         if "Physique" in kholle["matiere"]:
             kholle_info = "**\n[Programme de khôlle de physique](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=329)**"
         embed.add_field(
@@ -255,7 +255,8 @@ async def khôlles_cmd(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
-    embed = await gen_kholle(kholles_semaines(interaction.user.id), user_id = interaction.user.id)
+    user_khôlles = kholles_semaines(interaction.user.id)
+    embed = await gen_kholle(user_khôlles=user_khôlles, user_id = interaction.user.id)
 
     await interaction.response.send_message(embed=embed, ephemeral=True, view=select_week())
 
@@ -286,7 +287,7 @@ class select_week(discord.ui.View):
         user_khôlles = kholles_semaines(
             interaction.user.id, semaine=self.semaine)
 
-        embed = gen_kholle(user_khôlles, semaine=self.semaine, user_id = interaction.user.id)
+        embed = await gen_kholle(user_khôlles, semaine=self.semaine, user_id = interaction.user.id)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
@@ -308,15 +309,15 @@ class select_week(discord.ui.View):
 
 async def send_reminder_saturday():
     # Send a remainder every saturday for next week khôlles
-    if not (datetime.date.today().timetuple().tm_wday == 5):
-        return
+    # if not (datetime.date.today().timetuple().tm_wday == 5):
+    #     return
     for member in data["Members"]:
         if data["Members"][member]["reminder"] != "True":
             return
         user = await bot.fetch_user(member)
-        user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
+        user_khôlles = kholles_semaines(member, semaine=semaine_actuelle()+1)
 
-        embed = await gen_kholle(user_khôlles, semaine_actuelle()+1)
+        embed = await gen_kholle(user_khôlles=user_khôlles, user_id = member, semaine=semaine_actuelle()+1,)
 
         # To send dms, the app needs to be a bot, not just an app.
         await user.send(embed=embed)
@@ -335,7 +336,11 @@ async def send_reminder_2days_before():
             colour=discord.Colour.red()
         )
         for kholle in user_khôlles:
-            if day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == 2:
+            print(day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday)
+            weekend_condition = None
+            if datetime.date.today().timetuple().tm_wday in (5,6): # Weekend
+                weekend_condition = day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == -5
+            if day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == 2 or weekend_condition:
                 embed.add_field(
                     name=f"{kholle['matiere']} avec {kholle['colleur']}",
                     value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
