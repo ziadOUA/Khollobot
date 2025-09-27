@@ -155,13 +155,14 @@ def kholles_semaines(user_id: int, semaine: int = semaine_actuelle()) -> list:
     user_group_id = user_data["group_id"]
 
     user_khôlles = []
-    for kholle in khôlles[f"S_{semaine_actuelle() if not semaine else semaine}"]:
+    for kholle in khôlles[f"S_{semaine}"]:
         if kholle["group_id"] == user_group_id:
             user_khôlles.append(kholle)
     user_khôlles = sorted(user_khôlles, key=lambda x: day_to_num[x["jour"]])
     return user_khôlles
 
-async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle()):
+async def gen_kholle(user_id:int, semaine: int = semaine_actuelle()):
+    user_khôlles = kholles_semaines(user_id,semaine)
     if not user_khôlles:
         embed = discord.Embed(
             title="Aucune khôlle cette semaine",
@@ -255,8 +256,9 @@ async def khôlles_cmd(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 
-    user_khôlles = kholles_semaines(interaction.user.id)
-    embed = await gen_kholle(user_khôlles=user_khôlles, user_id = interaction.user.id)
+        
+
+    embed = await gen_kholle(user_id = interaction.user.id, semaine=semaine_actuelle())
 
     await interaction.response.send_message(embed=embed, ephemeral=True, view=select_week())
 
@@ -284,10 +286,8 @@ class select_week(discord.ui.View):
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
-        user_khôlles = kholles_semaines(
-            interaction.user.id, semaine=self.semaine)
 
-        embed = await gen_kholle(user_khôlles, semaine=self.semaine, user_id = interaction.user.id)
+        embed = await gen_kholle(semaine=self.semaine, user_id = interaction.user.id)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
@@ -298,10 +298,7 @@ class select_week(discord.ui.View):
         Button handler to show next week khôlles
         """
         self.semaine += 1
-
-        user_khôlles = kholles_semaines(
-            interaction.user.id, semaine=self.semaine)
-        embed = await gen_kholle(user_khôlles, semaine=self.semaine, user_id = interaction.user.id)
+        embed = await gen_kholle(semaine=self.semaine, user_id = interaction.user.id)
         view = select_week()
         view.semaine = self.semaine
         await interaction.response.edit_message(embed=embed, view=view)
@@ -315,9 +312,8 @@ async def send_reminder_saturday():
         if data["Members"][member]["reminder"] != "True":
             return
         user = await bot.fetch_user(member)
-        user_khôlles = kholles_semaines(member, semaine=semaine_actuelle()+1)
 
-        embed = await gen_kholle(user_khôlles=user_khôlles, user_id = member, semaine=semaine_actuelle()+1,)
+        embed = await gen_kholle(user_id = member, semaine=semaine_actuelle()+1,)
 
         # To send dms, the app needs to be a bot, not just an app.
         await user.send(embed=embed)
@@ -328,19 +324,21 @@ async def send_reminder_2days_before():
         if data["Members"][member]["reminder"] != "True":
             return
         user = await bot.fetch_user(member)
-        user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
-
+        today = datetime.date.today().timetuple().tm_wday
+        if today in [5,6]: # If were on saturday or sunday, consider next week
+            user_khôlles = kholles_semaines(member, semaine_actuelle()+1)
+        else:
+            user_khôlles = kholles_semaines(member, semaine_actuelle())
         embed = discord.Embed(
             title=f"Rappel de ta khôlle",
             description=f"Salut {data["Members"][member]["name"].split(" ")[1]}, voici la khôlle que tu as pour après demain, prépare la bien ! : ",
             colour=discord.Colour.red()
         )
         for kholle in user_khôlles:
-            print(day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday)
             weekend_condition = None
-            if datetime.date.today().timetuple().tm_wday in (5,6): # Weekend
-                weekend_condition = day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == -5
-            if day_to_num[kholle['jour']] - datetime.date.today().timetuple().tm_wday == 2 or weekend_condition:
+            if today in (5,6): # Weekend
+                weekend_condition = day_to_num[kholle['jour']] - today == -5
+            if day_to_num[kholle['jour']] - today == 2 or weekend_condition:
                 embed.add_field(
                     name=f"{kholle['matiere']} avec {kholle['colleur']}",
                     value=f"```\nLe {kholle['jour']} à {kholle['heure']}```",
