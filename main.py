@@ -3,8 +3,8 @@ from discord import app_commands
 import pandas as pd
 import json
 import datetime
-from discord.ext import tasks
-from ics import Calendar, Event
+from ics import Calendar
+import os
 
 with open("data.json", "r") as f:
     data = json.load(f)
@@ -78,6 +78,10 @@ def get_kholles():
     """Func that reads the collomètre and returns a tuple of (group, khôlles)
     TODO Make it also tell which group as what half group classes
     """
+    if not ("collomètre.xlsx" in os.listdir()):
+        print("Vous devez ajouter le fichier collomètre et le renommer en \"collomètre.xlsx\", sinon le bot ne pourra pas marcher !!")
+        exit()
+
     df1 = pd.read_excel("collomètre.xlsx", sheet_name=0)
     data_khôlles = df1.to_dict(orient="records")
     
