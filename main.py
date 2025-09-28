@@ -121,7 +121,6 @@ def get_kholles():
                         "colleur": colleur,
                         "jour": jour,
                         "heure": heure,
-                        "salle": salle,
                         "semaine": semaine_from_key
                     })
 
