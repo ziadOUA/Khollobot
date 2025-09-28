@@ -192,7 +192,7 @@ async def gen_kholle(user_khôlles, user_id:int, semaine: int = semaine_actuelle
             kholle_info = "**\n[Programme de khôlle de physique](https://cahier-de-prepa.fr/mp2i-thiers/docs?rep=329)**"
         embed.add_field(
             name=f"{kholle['matiere']} avec {kholle['colleur']}",
-            value=f"```\nLe {kholle['jour']} à {kholle['heure']} en salle : {kholle['salle']}```{kholle_info}",
+            value=f"```\nLe {kholle['jour']} à {kholle['heure']}.\n" +  (f"En salle : {kholle['salle']}\n" if kholle['salle'] else "") + "```" + kholle_info,
         )
     return embed
 
